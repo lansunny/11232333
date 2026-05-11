@@ -1,0 +1,8 @@
+*.log
+*.err
+*-preview.png
+preview.png
+final-slide-*.png
+slide-*-fixed-*.png
+server.*
+assets/
