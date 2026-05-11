@@ -689,13 +689,65 @@ function contextVisual() {
 }
 
 function lossVisual() {
-  const formulas = [
-    ["y_u = Concat(enc(AIS_u), agg(ACWs_u))", "将节点自身交互模式与上下文窗口聚合结果拼接。"],
-    ["p_uv = sigmoid(MLP([y_u,y_v]))", "用两个节点表示预测未来连边概率。"],
-    ["positive / negative sampling", "共现节点作为正样本，随机负采样节点作为负样本。"]
-  ];
-  return `<div class="formula-stack">
-    ${formulas.map(item => `<div class="panel formula"><code>${item[0]}</code><p>${item[1]}</p></div>`).join("")}
+  return `<div class="loss-board panel">
+    <section class="representation-flow">
+      <div class="flow-title">Final Node Representation</div>
+      <div class="repr-stack">
+        <div class="repr-row">
+          <div class="source-card ip-source">
+            <span>Interaction Pattern</span>
+            <b>enc(AIS<sub>u</sub>)</b>
+            <i></i><i></i><i></i><i></i>
+          </div>
+          <div class="join-symbol">+</div>
+          <div class="source-card ctx-source">
+            <span>Temporal Context</span>
+            <b>agg(ACWs<sub>u</sub>)</b>
+            <i></i><i></i><i></i><i></i>
+          </div>
+          <div class="concat-arrow">Concat</div>
+          <div class="final-vector">
+            <strong>y<sub>u</sub></strong>
+            <div>${Array.from({ length: 12 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div>
+          </div>
+        </div>
+        <div class="predict-row">
+          <div class="mini-vector"><strong>y<sub>u</sub></strong><div>${Array.from({ length: 6 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div></div>
+          <div class="mini-vector"><strong>y<sub>v</sub></strong><div>${Array.from({ length: 6 }, (_, i) => `<i style="--i:${i + 2}"></i>`).join("")}</div></div>
+          <div class="mlp-box">MLP + sigmoid</div>
+          <div class="prob-score">p<sub>uv</sub><b>0.87</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sampling-space">
+      <div class="flow-title">Self-supervised Loss</div>
+      <div class="embedding-space">
+        <svg viewBox="0 0 520 330" aria-hidden="true">
+          <line x1="238" y1="158" x2="146" y2="108" class="pull" />
+          <line x1="238" y1="158" x2="328" y2="104" class="pull" />
+          <line x1="238" y1="158" x2="92" y2="260" class="push" />
+          <line x1="238" y1="158" x2="438" y2="246" class="push" />
+          <line x1="238" y1="158" x2="438" y2="72" class="push" />
+        </svg>
+        <div class="emb-node anchor" style="left:46%;top:48%">u</div>
+        <div class="emb-node pos" style="left:28%;top:32%">v+</div>
+        <div class="emb-node pos" style="left:64%;top:30%">c+</div>
+        <div class="emb-node neg" style="left:16%;top:78%">n-</div>
+        <div class="emb-node neg" style="left:84%;top:74%">n-</div>
+        <div class="emb-node neg" style="left:84%;top:22%">n-</div>
+        <div class="loss-legend">
+          <span><i class="pos-line"></i>共现正样本靠近</span>
+          <span><i class="neg-line"></i>负采样节点远离</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="loss-equations">
+      <div><code>y_u = Concat(enc(AIS_u), agg(ACWs_u))</code><span>融合自身行为与邻域上下文</span></div>
+      <div><code>p_uv = sigmoid(MLP([y_u, y_v]))</code><span>输出未来连边概率</span></div>
+      <div><code>L = -log σ(y_u·y⁺) - Σ log σ(-y_u·y⁻)</code><span>拉近正样本，推远负样本</span></div>
+    </section>
   </div>`;
 }
 
@@ -913,8 +965,8 @@ function thanksVisual() {
     ${nodes.map(node => `<i class="thanks-dot" style="left:${node[0]}%;top:${node[1]}%;--i:${node[2]}"></i>`).join("")}
     <section class="thanks-content">
       <div class="kicker">15 / Thanks</div>
-      <h1>感谢聆听</h1>
-      <p>欢迎老师和同学批评指正</p>
+      <h1>感谢指导</h1>
+      <p>欢迎老师批评指正</p>
       <div class="qa-pill">Q&A</div>
       <span>Temporal Link Prediction · Dynamic Graph Learning · IPNet</span>
     </section>
@@ -948,7 +1000,20 @@ function render() {
       `<li style="--i:${bulletIndex}">${escapeText(item)}</li>`
     )).join("");
 
-    const layoutClass = slide.visual === "framework" ? "framework-slide" : slide.visual === "methods" ? "method-slide" : slide.visual === "interaction" ? "interaction-slide" : slide.visual === "context" ? "context-slide" : slide.visual === "datasets" ? "dataset-slide" : slide.visual === "results" ? "results-slide" : slide.visual === "ablation" ? "ablation-slide" : slide.visual === "summary" ? "summary-slide" : slide.visual === "thanks" ? "thanks-slide" : "";
+    const layoutClass = slide.visual === "framework" ? "framework-slide" : slide.visual === "methods" ? "method-slide" : slide.visual === "interaction" ? "interaction-slide" : slide.visual === "context" ? "context-slide" : slide.visual === "loss" ? "loss-slide" : slide.visual === "datasets" ? "dataset-slide" : slide.visual === "results" ? "results-slide" : slide.visual === "ablation" ? "ablation-slide" : slide.visual === "summary" ? "summary-slide" : slide.visual === "thanks" ? "thanks-slide" : "";
+    if (slide.visual === "loss") {
+      return `<article class="slide ${layoutClass} ${index === 0 ? "active" : ""}" data-index="${index}">
+        <section class="loss-header">
+          <div>
+            <div class="kicker">${escapeText(slide.kicker)}</div>
+            <h1>${escapeText(slide.title)}</h1>
+          </div>
+          <p>${escapeText(slide.subtitle)}</p>
+        </section>
+        <section class="visual">${renderVisual(slide.visual)}</section>
+      </article>`;
+    }
+
     if (slide.visual === "thanks") {
       return `<article class="slide ${layoutClass} ${index === 0 ? "active" : ""}" data-index="${index}">
         ${renderVisual(slide.visual)}
